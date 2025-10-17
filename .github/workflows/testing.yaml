@@ -3,15 +3,15 @@
 # SPDX-FileCopyrightText: 2025 The Linux Foundation
 
 # Action test/validation workflow
-name: "Test GitHub Action 🧪"
+name: 'Test GitHub Action 🧪'
 
 # yamllint disable-line rule:truthy
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ['main']
   pull_request:
-    branches: ["main"]
+    branches: ['main']
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
@@ -22,7 +22,7 @@ permissions: {}
 jobs:
   ### Test the GitHub Action in this Repository ###
   tests:
-    name: "Test local GitHub Action"
+    name: 'Test local GitHub Action'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -34,42 +34,42 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: "Checkout repository"
+      - name: 'Checkout repository'
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      # Perform setup prior to running test(s)
-      - name: "Testing setup step"
-        shell: bash
-        run: |
-          # Testing setup step
-          echo "Testing setup step"
-          echo "Testing setup step/summary output" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: "Running local action: ${{ github.repository }}"
+      - name: 'Get ticket from JSON lookup table'
+        id: lookup
         uses: ./
         with:
-          input: "test input 💬"
+          # yamllint disable-line rule:line-length
+          json: '[{ "key": "dependabot[bot]", "value": "CIMAN-33" },{ "key": "bob", "value": "CIMAN-1" }]'
+          key: 'dependabot[bot]'
 
-      - name: "Validated local action: ${{ github.repository }}"
+      - name: "Validate local action: ${{ github.repository }}"
         shell: bash
         run: |
           # Local action validation
-          echo "Validated local action: ${{ github.repository }}"
-          echo "Validation step summary output" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.lookup.outputs.value }}" != 'CIMAN-33' ]]
+          then
+            echo 'Error: Did not receive expected CIMAN-33 value ❌'; exit 1
+          else
+            echo 'Local action validated ✅'
+          fi
 
       # yamllint disable-line rule:line-length
-      - name: "Running local action: ${{ github.repository }} [Override Failure]"
+      - name: "Running local action: ${{ github.repository }} [Failure Test]"
         uses: ./
         id: failure
         continue-on-error: true
         with:
-          invalid_input: "Some garbage"
+          # yamllint disable-line rule:line-length
+          json: '[{ "key": "dependabot[bot]", "value": "CIMAN-33" },{ "key": "bob", "value": "CIMAN-1" }]'
+          key: 'garbage'
 
       # Failure testing is also important
-      - name: "Error if step above did NOT fail"
+      - name: 'Error if step above did NOT fail'
         if: steps.failure.outcome == 'success'
         shell: bash
         run: |
           # Error if step above did NOT fail
-          echo "Error: previous test step did NOT fail ❌"
-          exit 1
+          echo 'Error: previous test step did NOT fail ❌'; exit 1

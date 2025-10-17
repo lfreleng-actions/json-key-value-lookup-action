@@ -1,37 +1,109 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2025 The Linux Foundation
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
 
-# actions-template
-name: "🛠️ Actions Template"
-description: "Description of action"
-# Any relevant notes/observations can go here
+name: '🔑 JSON Variable Key/Value Lookup'
+description: 'Lookup a value in a JSON key/value lookup table'
 
 inputs:
-  input:
-    description: "Description of input"
+  json:
+    description: 'The JSON key/value lookup table'
     required: true
+  key:
+    description: 'The JSON key requiring lookup'
+    required: true
+  default:
+    description: 'Default value to return if lookup fails'
+    required: false
+  summary_output:
+    description: 'Displays summary output'
+    required: false
+    default: 'false'
+  exit_on_failure:
+    description: 'Exit with error on failure'
+    required: false
+    default: 'true'
+  silent:
+    # Present for security, in case the content that might be sensitive
+    description: 'Suppress output of returned values'
+    required: false
+    default: 'false'
 
 outputs:
-  output:
-    description: "Description of output"
-    value: ${{ steps.code.outputs.output }}
+  value:
+    description: 'The value associated with the supplied key'
+    value: ${{ steps.lookup.outputs.value }}
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
-    - name: "Friendly Name"
-      id: code
+    - name: 'JSON Variable Key/Value Lookup'
+      id: lookup
       shell: bash
       run: |
-        # Friendly Name
-        input="${{ inputs.input }}"
-        if [ -z "$input" ]; then
-          echo "Error: mandatory input was not set/configured ❌"
+        # JSON Variable Key/Value Lookup
+
+        # Note: Don't set json as a variable, since that breaks later parsing
+        key="${{ inputs.key }}"
+        default="${{ inputs.default }}"
+        summary_output=$(echo ${{ inputs.summary_output }} | \
+          tr '[:upper:]' '[:lower:]')
+        exit_on_failure=$(echo ${{ inputs.exit_on_failure }} | \
+          tr '[:upper:]' '[:lower:]')
+        silent=$(echo ${{ inputs.silent }} | tr '[:upper:]' '[:lower:]')
+
+        # Validate that input variables are populated
+        if [ -z "${{ inputs.json }}" ]; then
+          echo 'Error: variable/JSON string was NOT passed as input ❌'
+          exit 1
+        elif [ -z "$key" ]; then
+          echo 'Error: required lookup key was NOT passed as input ❌'
           exit 1
         fi
 
-        echo "output=$input" >> "$GITHUB_ENV"
-        echo "output=$input" >> "$GITHUB_OUTPUT"
-        echo "Action received: $input ✅"
-        echo "Action received: $input ✅" >> "$GITHUB_STEP_SUMMARY"
+        # Ensure JSON parser/binary is available
+        jq_cmd=$(which jq || true)
+        if [ ! -x "$jq_cmd" ]; then
+          echo 'Error: jq command was NOT found in the PATH ❌'; exit 1
+        fi
+
+        # Check that string parses as valid JSON
+        if (jq -re '""' <<< '${{ inputs.json }}' 2>&1); then
+          echo 'JSON parsing successful ✅'
+        else
+          echo 'Error: jq command was NOT able to parse JSON ❌'; exit 1
+        fi
+
+        echo "Key to lookup: $key 🔑"
+
+        value=$(echo '${{ inputs.json }}' | \
+          "$jq_cmd" -r --arg KEY "$key" '.[] | select(.key==$KEY) | .value')
+
+        if [ -z "$value" ] && [ -z "$default" ]; then
+          echo 'Key/value lookup failed ❌'
+          failed='true'
+        elif [ -z "$value" ]; then
+          echo 'Key/value lookup failed ⚠️'
+          value="$default"
+        fi
+
+        echo "value=$value" >> "$GITHUB_ENV"
+        echo "value=$value" >> "$GITHUB_OUTPUT"
+
+        if [ "$silent" != "true" ]; then
+          echo "Value returned: $value 💬" >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+        if [ "$summary_output" = "true" ]; then
+          echo '### 🔑 JSON Variable Key/Value Lookup' >> "$GITHUB_STEP_SUMMARY"
+          echo "Key to lookup: $key 🔑" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$silent" != "true" ]; then
+            echo "Value returned: $value 💬" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        fi
+
+        # After displaying summary, exit with error
+        if [ "$failed" = 'true' ] && \
+          [ "$exit_on_failure" = 'true' ]; then
+          exit 1
+        fi
