@@ -46,14 +46,14 @@ Set/define this under:
 
 <!-- markdownlint-disable MD013 -->
 
-| Variable Name    | Required | Default | Description                                |
-| ---------------- | -------- | ------- | ------------------------------------------ |
-| json             | True     |         | JSON dictionary containing key/value pairs |
-| key              | True     |         | Key to use to extract corresponding value  |
-| default          | False    | None    | Default value in the event lookup fails    |
-| silent           | False    | False   | Suppresses output of returned values       |
-| summary_output   | False    | False   | Displays summary output in GitHub step summary |
-| exit_on_failure  | False    | True    | Exit with error on failure (when no default provided) |
+| Variable Name   | Required | Default | Description                                           |
+| --------------- | -------- | ------- | ----------------------------------------------------- |
+| json            | True     |         | JSON dictionary containing key/value pairs            |
+| key             | True     |         | Key to use to extract corresponding value             |
+| default         | False    | None    | Default value in the event lookup fails               |
+| silent          | False    | False   | Suppresses output of returned values                  |
+| summary_output  | False    | False   | Displays summary output in GitHub step summary        |
+| exit_on_failure | False    | True    | Exit with error on failure (when no default provided) |
 
 <!-- markdownlint-enable MD013 -->
 
