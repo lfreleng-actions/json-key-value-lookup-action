@@ -40,20 +40,27 @@ runs:
     - name: 'JSON Variable Key/Value Lookup'
       id: lookup
       shell: bash
+      env:
+        INPUT_JSON: ${{ inputs.json }}
+        INPUT_KEY: ${{ inputs.key }}
+        INPUT_DEFAULT: ${{ inputs.default }}
+        INPUT_SUMMARY_OUTPUT: ${{ inputs.summary_output }}
+        INPUT_EXIT_ON_FAILURE: ${{ inputs.exit_on_failure }}
+        INPUT_SILENT: ${{ inputs.silent }}
       run: |
         # JSON Variable Key/Value Lookup
 
         # Note: Don't set json as a variable, since that breaks later parsing
-        key="${{ inputs.key }}"
-        default="${{ inputs.default }}"
-        summary_output=$(echo ${{ inputs.summary_output }} | \
+        key="$INPUT_KEY"
+        default="$INPUT_DEFAULT"
+        summary_output=$(echo "$INPUT_SUMMARY_OUTPUT" | \
           tr '[:upper:]' '[:lower:]')
-        exit_on_failure=$(echo ${{ inputs.exit_on_failure }} | \
+        exit_on_failure=$(echo "$INPUT_EXIT_ON_FAILURE" | \
           tr '[:upper:]' '[:lower:]')
-        silent=$(echo ${{ inputs.silent }} | tr '[:upper:]' '[:lower:]')
+        silent=$(echo "$INPUT_SILENT" | tr '[:upper:]' '[:lower:]')
 
         # Validate that input variables are populated
-        if [ -z "${{ inputs.json }}" ]; then
+        if [ -z "$INPUT_JSON" ]; then
           echo 'Error: variable/JSON string was NOT passed as input ❌'
           exit 1
         elif [ -z "$key" ]; then
@@ -68,7 +75,7 @@ runs:
         fi
 
         # Check that string parses as valid JSON
-        if (jq -re '""' <<< '${{ inputs.json }}' 2>&1); then
+        if (jq -re '""' <<< "$INPUT_JSON" 2>&1); then
           echo 'JSON parsing successful ✅'
         else
           echo 'Error: jq command was NOT able to parse JSON ❌'; exit 1
@@ -76,7 +83,7 @@ runs:
 
         echo "Key to lookup: $key 🔑"
 
-        value=$(echo '${{ inputs.json }}' | \
+        value=$(echo "$INPUT_JSON" | \
           "$jq_cmd" -r --arg KEY "$key" '.[] | select(.key==$KEY) | .value')
 
         if [ -z "$value" ] && [ -z "$default" ]; then
