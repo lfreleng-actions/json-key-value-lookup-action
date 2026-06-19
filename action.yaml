@@ -94,8 +94,18 @@ runs:
           value="$default"
         fi
 
-        echo "value=$value" >> "$GITHUB_ENV"
-        echo "value=$value" >> "$GITHUB_OUTPUT"
+        # Write the output using the heredoc delimiter syntax so that a
+        # value containing newlines or other special characters cannot
+        # corrupt the output file or inject additional step outputs. The
+        # delimiter is randomised so it cannot be guessed and embedded in
+        # an attacker-supplied value.
+        delimiter="ghadelimiter_$(openssl rand -hex 16 2>/dev/null || \
+          echo "${RANDOM}${RANDOM}${RANDOM}${RANDOM}")"
+        {
+          printf 'value<<%s\n' "$delimiter"
+          printf '%s\n' "$value"
+          printf '%s\n' "$delimiter"
+        } >> "$GITHUB_OUTPUT"
 
         if [ "$silent" != "true" ]; then
           echo "Value returned: $value 💬" >> "$GITHUB_STEP_SUMMARY"
