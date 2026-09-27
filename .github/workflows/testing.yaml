@@ -50,14 +50,9 @@ jobs:
           allowed-endpoints: >
             ${{ env.CONNECTION_ALLOW_LIST }}
 
-      - name: 'Checkout repository'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
       - name: 'Get ticket from JSON lookup table'
         id: lookup
-        uses: ./
+        uses: $/
         with:
           # yamllint disable-line rule:line-length
           json: '[{ "key": "dependabot[bot]", "value": "CIMAN-33" },{ "key": "bob", "value": "CIMAN-1" }]'
@@ -78,7 +73,7 @@ jobs:
 
       # yamllint disable-line rule:line-length
       - name: "Running local action: ${{ github.repository }} [Failure Test]"
-        uses: ./
+        uses: $/
         id: failure
         continue-on-error: true
         with:
